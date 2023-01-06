@@ -80,5 +80,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Bestools server listening on port ${port}`);
+  console.log(`Bestools server listening on  http://localhost:${port}`);
 });
