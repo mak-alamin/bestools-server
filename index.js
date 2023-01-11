@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
@@ -38,12 +39,22 @@ async function run() {
     await client.connect();
     const userCollection = client.db("bestools").collection("users");
 
+    // get all users
     app.get("/user", verifyJWT, async (req, res) => {
       const users = await userCollection.find().toArray();
-      console.log(users);
       res.send(users);
     });
 
+    // get user by email
+    app.get("/user/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+
+      const users = await userCollection.findOne(filter);
+      res.send(users);
+    });
+
+    // Update or insert admin user
     app.put("/user/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
@@ -54,6 +65,7 @@ async function run() {
       res.send(result);
     });
 
+    // Update or insert user
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -70,6 +82,7 @@ async function run() {
       );
       res.send({ result, token });
     });
+    
   } finally {
   }
 }
