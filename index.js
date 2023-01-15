@@ -50,8 +50,8 @@ async function run() {
       const email = req.params.email;
       const filter = { email: email };
 
-      const users = await userCollection.findOne(filter);
-      res.send(users);
+      const user = await userCollection.findOne(filter);
+      res.send(user);
     });
 
     // Update or insert admin user
