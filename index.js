@@ -45,7 +45,7 @@ async function run() {
       res.send(users);
     });
 
-    // get user by email
+    // get single user (by email)
     app.get("/user/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
@@ -54,15 +54,27 @@ async function run() {
       res.send(user);
     });
 
-    // Update or insert admin user
-    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
+    // Insert One User
+    app.post("/user/:email", async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
-      const updateDoc = {
-        $set: { role: "admin" },
-      };
-      const result = await userCollection.updateOne(filter, updateDoc);
-      res.send(result);
+
+      const userExists = await userCollection.findOne(filter);
+
+      const result = true;
+
+      if (!userExists) {
+        const user = req.body;
+
+        result = await userCollection.insertOne(user);
+      }
+
+      const token = jwt.sign(
+        { email: email },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "1d" }
+      );
+      res.send({ result, token });
     });
 
     // Update or insert user
@@ -75,6 +87,7 @@ async function run() {
         $set: user,
       };
       const result = await userCollection.updateOne(filter, updateDoc, options);
+
       const token = jwt.sign(
         { email: email },
         process.env.ACCESS_TOKEN_SECRET,
@@ -82,7 +95,17 @@ async function run() {
       );
       res.send({ result, token });
     });
-    
+
+    // Update or insert admin user (for Make Admin)
+    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
   } finally {
   }
 }
