@@ -51,6 +51,7 @@ async function run() {
       const filter = { email: email };
 
       const user = await userCollection.findOne(filter);
+
       res.send(user);
     });
 
