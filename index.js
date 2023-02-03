@@ -6,7 +6,7 @@ require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
 app.use(cors());
 app.use(express.json());
@@ -21,13 +21,19 @@ const client = new MongoClient(uri, {
 
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
+  
   if (!authHeader) {
     return res.status(401).send({ message: "UnAuthorized access" });
   }
-
+  
   const token = authHeader.split(" ")[1];
 
+  if ( !token ) {
+    return res.status(401).send({ message: "Token Not Found" });
+  }
+  
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    console.log(err);
     if (err) {
       return res.status(403).send({
          message: "Forbidden access",
@@ -53,11 +59,15 @@ async function run() {
     // get single user (by email)
     app.get("/user/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
+      
       const filter = { email: email };
-
+      
       const user = await userCollection.findOne(filter);
+      console.log(user);
 
-      res.send(user);
+      if(user){
+        res.send(user);
+      }
     });
 
     // Insert One User
