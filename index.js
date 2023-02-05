@@ -49,6 +49,7 @@ async function run() {
   try {
     await client.connect();
     const userCollection = client.db("bestools").collection("users");
+    const productCollection = client.db("bestools").collection("products");
 
     // get all users
     app.get("/user", verifyJWT, async (req, res) => {
@@ -70,14 +71,33 @@ async function run() {
       }
     });
 
-    // Insert One User
+    //Insert Product
+    app.post("/product", verifyJWT, async (req, res) => {
+      const slug = req.body.slug;
+
+      console.log(req.body);
+      
+      let product = req.body;
+
+      const slugExists = await productCollection.findOne({slug:slug});
+
+      if (slugExists){
+        product.slug += '-2';
+      }
+
+      let result = await productCollection.insertOne(product);
+
+      res.send(result);
+    });
+
+    // Insert One User (for first time sign in)
     app.post("/user/:email", async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
 
       const userExists = await userCollection.findOne(filter);
 
-      const result = true;
+      let result = true;
 
       if (!userExists) {
         const user = req.body;
