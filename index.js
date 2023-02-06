@@ -51,24 +51,10 @@ async function run() {
     const userCollection = client.db("bestools").collection("users");
     const productCollection = client.db("bestools").collection("products");
 
-    // get all users
-    app.get("/user", verifyJWT, async (req, res) => {
-      const users = await userCollection.find().toArray();
-      res.send(users);
-    });
-
-    // get single user (by email)
-    app.get("/user/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email;
-      
-      const filter = { email: email };
-      
-      const user = await userCollection.findOne(filter);
-      console.log(user);
-
-      if(user){
-        res.send(user);
-      }
+    // get all products
+    app.get("/product", async (req, res) => {
+      const products = await productCollection.find().toArray();
+      res.send(products);
     });
 
     //Insert Product
@@ -88,6 +74,26 @@ async function run() {
       let result = await productCollection.insertOne(product);
 
       res.send(result);
+    });
+
+    // get all users
+    app.get("/user", verifyJWT, async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
+    });
+
+    // get single user (by email)
+    app.get("/user/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      
+      const filter = { email: email };
+      
+      const user = await userCollection.findOne(filter);
+      console.log(user);
+
+      if(user){
+        res.send(user);
+      }
     });
 
     // Insert One User (for first time sign in)
