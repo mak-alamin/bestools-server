@@ -6,7 +6,7 @@ require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -51,6 +51,18 @@ async function run() {
     const userCollection = client.db("bestools").collection("users");
     const productCollection = client.db("bestools").collection("products");
 
+    
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await userCollection.findOne(query);
+
+      if (user?.role !== 'admin') {
+          return res.status(403).send({ message: 'forbidden access' })
+      }
+      next();
+    }
+
     // get all products
     app.get("/product", async (req, res) => {
       const products = await productCollection.find().toArray();
@@ -75,6 +87,15 @@ async function run() {
 
       res.send(result);
     });
+
+    // Delete Product
+    app.delete('/product/:id', verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const filter = { _id: ObjectId(id) };
+      const result = await productCollection.deleteOne(filter);
+      res.send(result);
+    })
 
     // get all users
     app.get("/user", verifyJWT, async (req, res) => {
