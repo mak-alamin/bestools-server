@@ -140,6 +140,19 @@ async function run() {
       res.send({ result, token });
     });
 
+    // Update Product
+    app.put("/product/:id", async (req, res) => {
+      const id = req.params.id;
+      const product = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updateDoc = {
+        $set: product
+      };
+      const result = await productCollection.updateOne(filter, updateDoc);
+
+      res.send(result);
+    });
+
     // Update or insert user
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
