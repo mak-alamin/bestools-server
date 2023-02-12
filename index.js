@@ -32,7 +32,7 @@ function verifyJWT(req, res, next) {
     return res.status(401).send({ message: "Token Not Found" });
   }
   
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+  jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
     console.log(err);
     if (err) {
       return res.status(403).send({
@@ -50,7 +50,6 @@ async function run() {
     await client.connect();
     const userCollection = client.db("bestools").collection("users");
     const productCollection = client.db("bestools").collection("products");
-
     
     const verifyAdmin = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
@@ -63,40 +62,25 @@ async function run() {
       next();
     }
 
-    // get all products
-    app.get("/product", async (req, res) => {
-      const products = await productCollection.find().toArray();
-      res.send(products);
-    });
+    // Get JWT auth token
+    app.get('/jwt', async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user) {
+          const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    //Insert Product
-    app.post("/product", verifyJWT, async (req, res) => {
-      const slug = req.body.slug;
-
-      console.log(req.body);
-      
-      let product = req.body;
-
-      const slugExists = await productCollection.findOne({slug:slug});
-
-      if (slugExists){
-        product.slug += '-2';
+          console.log(token);
+          return res.send({ accessToken: token });
       }
-
-      let result = await productCollection.insertOne(product);
-
-      res.send(result);
+      res.status(403).send({ accessToken: '' })
     });
 
-    // Delete Product
-    app.delete('/product/:id', verifyJWT, verifyAdmin, async (req, res) => {
-      const id = req.params.id;
-      console.log(id);
-      const filter = { _id: ObjectId(id) };
-      const result = await productCollection.deleteOne(filter);
-      res.send(result);
-    })
-
+  /**
+   * -----------------------------------
+   * User API routes
+   * -----------------------------------
+   */
     // get all users
     app.get("/user", verifyJWT, async (req, res) => {
       const users = await userCollection.find().toArray();
@@ -131,13 +115,64 @@ async function run() {
 
         result = await userCollection.insertOne(user);
       }
+      
+      res.send(result);
+    });
 
-      const token = jwt.sign(
-        { email: email },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1d" }
-      );
-      res.send({ result, token });
+    // Update or insert user
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+
+      res.send(result);
+    });
+
+    // Update or insert admin user (for Make Admin)
+    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+
+    /**
+     * -----------------------------------
+     * Product API routes
+     * -----------------------------------
+     */
+    // get all products
+    app.get("/product", async (req, res) => {
+      const products = await productCollection.find().toArray();
+      res.send(products);
+    });
+
+    //Insert Product
+    app.post("/product", verifyJWT, async (req, res) => {
+      const slug = req.body.slug;
+
+      console.log(req.body);
+      
+      let product = req.body;
+
+      const slugExists = await productCollection.findOne({slug:slug});
+
+      if (slugExists){
+        product.slug += '-2';
+      }
+
+      let result = await productCollection.insertOne(product);
+
+      res.send(result);
     });
 
     // Update Product
@@ -153,33 +188,12 @@ async function run() {
       res.send(result);
     });
 
-    // Update or insert user
-    app.put("/user/:email", async (req, res) => {
-      const email = req.params.email;
-      const user = req.body;
-      const filter = { email: email };
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: user,
-      };
-      const result = await userCollection.updateOne(filter, updateDoc, options);
-
-      const token = jwt.sign(
-        { email: email },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1d" }
-      );
-      res.send({ result, token });
-    });
-
-    // Update or insert admin user (for Make Admin)
-    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email;
-      const filter = { email: email };
-      const updateDoc = {
-        $set: { role: "admin" },
-      };
-      const result = await userCollection.updateOne(filter, updateDoc);
+    // Delete Product
+    app.delete('/product/:id', verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const filter = { _id: ObjectId(id) };
+      const result = await productCollection.deleteOne(filter);
       res.send(result);
     });
   } finally {
