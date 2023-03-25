@@ -50,6 +50,8 @@ async function run() {
     await client.connect();
     const userCollection = client.db("bestools").collection("users");
     const productCollection = client.db("bestools").collection("products");
+    
+    const orderCollection = client.db("bestools").collection("orders");
 
     const verifyAdmin = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
@@ -72,7 +74,7 @@ async function run() {
           expiresIn: "1d",
         });
 
-        console.log(token);
+        // console.log(token);
         return res.send({ accessToken: token });
       }
       res.status(403).send({ accessToken: "" });
@@ -96,7 +98,7 @@ async function run() {
       const filter = { email: email };
 
       const user = await userCollection.findOne(filter);
-      console.log(user);
+      // console.log(user);
 
       if (user) {
         res.send(user);
@@ -171,7 +173,7 @@ async function run() {
     app.post("/product", verifyJWT, verifyAdmin, async (req, res) => {
       const slug = req.body.slug;
 
-      console.log(req.body);
+      // console.log(req.body);
 
       let product = req.body;
 
@@ -202,9 +204,32 @@ async function run() {
     // Delete Product
     app.delete("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      // console.log(id);
       const filter = { _id: ObjectId(id) };
       const result = await productCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+     /**
+     * -----------------------------------
+     * Orders API routes
+     * -----------------------------------
+     */
+     //Insert Order
+    app.post("/order", verifyJWT, async (req, res) => {
+      let order = req.body;
+
+      let result = await orderCollection.insertOne(order);
+
+      res.send(result);
+    });
+
+     // Delete/Cancel Order
+     app.delete("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      // console.log(id);
+      const filter = { _id: ObjectId(id) };
+      const result = await orderCollection.deleteOne(filter);
       res.send(result);
     });
   } catch (err) {
