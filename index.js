@@ -50,7 +50,7 @@ async function run() {
     await client.connect();
     const userCollection = client.db("bestools").collection("users");
     const productCollection = client.db("bestools").collection("products");
-    
+
     const orderCollection = client.db("bestools").collection("orders");
 
     const verifyAdmin = async (req, res, next) => {
@@ -210,12 +210,30 @@ async function run() {
       res.send(result);
     });
 
-     /**
+    /**
      * -----------------------------------
      * Orders API routes
      * -----------------------------------
      */
-     //Insert Order
+    // Get all orders
+    app.get("/order", verifyJWT, verifyAdmin, async (req, res) => {
+      const orders = await orderCollection.find().toArray();
+      res.send(orders);
+    });
+
+    // Get orders for single user
+    app.get("/order/:email", verifyJWT, async (req, res) => {
+      const email = req.params?.email;
+      const filter = { userEmail: email };
+
+      const result = await orderCollection.find(filter).toArray();
+
+      console.log(result);
+
+      res.send(result);
+    });
+
+    //Insert Order
     app.post("/order", verifyJWT, async (req, res) => {
       let order = req.body;
 
@@ -224,8 +242,8 @@ async function run() {
       res.send(result);
     });
 
-     // Delete/Cancel Order
-     app.delete("/order/:id", verifyJWT, async (req, res) => {
+    // Delete/Cancel Order
+    app.delete("/order/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       // console.log(id);
       const filter = { _id: ObjectId(id) };
