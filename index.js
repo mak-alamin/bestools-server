@@ -8,6 +8,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 8000;
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 app.use(cors());
 app.use(express.json());
 
@@ -224,11 +226,12 @@ async function run() {
     // Get orders for single user
     app.get("/order/:email", verifyJWT, async (req, res) => {
       const email = req.params?.email;
+
+      console.log(email);
+      
       const filter = { userEmail: email };
 
       const result = await orderCollection.find(filter).toArray();
-
-      console.log(result);
 
       res.send(result);
     });
@@ -249,6 +252,38 @@ async function run() {
       const filter = { _id: ObjectId(id) };
       const result = await orderCollection.deleteOne(filter);
       res.send(result);
+    });
+
+    /**
+     * -----------------------------------
+     * Payment API routes
+     * -----------------------------------
+     */
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const orderId = req.body?.orderId;
+
+      const order = await orderCollection.findOne({ _id: ObjectId(orderId) });
+
+      if (!order) {
+        res.send({
+          error: "not-found",
+          message: "Order Not found!",
+        });
+      }
+
+      const price =
+        parseFloat(order?.price) * parseFloat(order?.quantity) * 100;
+
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: price,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
     });
   } catch (err) {
     console.log(err);
