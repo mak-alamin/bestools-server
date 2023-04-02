@@ -13,13 +13,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kdfnv.mongodb.net/?retryWrites=true&w=majority`;
-
-const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverApi: ServerApiVersion.v1,
-});
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kdfnv.mongodb.net/?retryWrites=true&w=majority`;
 
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -35,7 +29,6 @@ function verifyJWT(req, res, next) {
   }
 
   jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
-    console.log(err);
     if (err) {
       return res.status(403).send({
         message: "Forbidden access",
@@ -49,7 +42,11 @@ function verifyJWT(req, res, next) {
 
 async function run() {
   try {
-    await client.connect();
+    const uri = "mongodb://127.0.0.1:27017/bestools";
+    const client = await MongoClient.connect(uri);
+
+    // await client.connect();
+
     const userCollection = client.db("bestools").collection("users");
     const productCollection = client.db("bestools").collection("products");
 
@@ -69,6 +66,7 @@ async function run() {
     // Get JWT auth token
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
+
       const query = { email: email };
       const user = await userCollection.findOne(query);
       if (user) {
@@ -100,14 +98,13 @@ async function run() {
       const filter = { email: email };
 
       const user = await userCollection.findOne(filter);
+
       // console.log(user);
 
-      if (user) {
-        res.send(user);
-      }
+      res.send(user);
     });
 
-    // Insert One User (for first time sign in)
+    // Insert One User (for registration)
     app.post("/user/:email", async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
@@ -227,8 +224,6 @@ async function run() {
     app.get("/order/:email", verifyJWT, async (req, res) => {
       const email = req.params?.email;
 
-      console.log(email);
-      
       const filter = { userEmail: email };
 
       const result = await orderCollection.find(filter).toArray();
