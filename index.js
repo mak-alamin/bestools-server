@@ -13,8 +13,6 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 app.use(cors());
 app.use(express.json());
 
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kdfnv.mongodb.net/?retryWrites=true&w=majority`;
-
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -40,12 +38,13 @@ function verifyJWT(req, res, next) {
   });
 }
 
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kdfnv.mongodb.net/?retryWrites=true&w=majority`;
+
+const uri = "mongodb://127.0.0.1:27017/bestools";
+
 async function run() {
   try {
-    const uri = "mongodb://127.0.0.1:27017/bestools";
     const client = await MongoClient.connect(uri);
-
-    // await client.connect();
 
     const userCollection = client.db("bestools").collection("users");
     const productCollection = client.db("bestools").collection("products");
@@ -160,7 +159,7 @@ async function run() {
 
     // Get Single Product
     app.get("/product/:id", async (req, res) => {
-      const id = req.params.id;
+      const id = req.params?.id.trim();
       const query = { _id: ObjectId(id) };
 
       const result = await productCollection.findOne(query);
@@ -170,9 +169,7 @@ async function run() {
 
     //Insert Product
     app.post("/product", verifyJWT, verifyAdmin, async (req, res) => {
-      const slug = req.body.slug;
-
-      // console.log(req.body);
+      const slug = req.body?.slug.trim();
 
       let product = req.body;
 
@@ -189,7 +186,7 @@ async function run() {
 
     // Update Product
     app.put("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
-      const id = req.params.id;
+      const id = req.params?.id.trim();
       const product = req.body;
       const filter = { _id: ObjectId(id) };
       const updateDoc = {
@@ -202,7 +199,7 @@ async function run() {
 
     // Delete Product
     app.delete("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
-      const id = req.params.id;
+      const id = req.params?.id.trim();
       // console.log(id);
       const filter = { _id: ObjectId(id) };
       const result = await productCollection.deleteOne(filter);
@@ -215,18 +212,31 @@ async function run() {
      * -----------------------------------
      */
     // Get all orders
-    app.get("/order", verifyJWT, verifyAdmin, async (req, res) => {
+    app.get("/orders", verifyJWT, verifyAdmin, async (req, res) => {
       const orders = await orderCollection.find().toArray();
       res.send(orders);
     });
 
     // Get orders for single user
-    app.get("/order/:email", verifyJWT, async (req, res) => {
-      const email = req.params?.email;
+    app.get("/orders/:email", verifyJWT, async (req, res) => {
+      const email = req.params?.email.trim();
+
+      console.log(email);
 
       const filter = { userEmail: email };
 
       const result = await orderCollection.find(filter).toArray();
+
+      res.send(result);
+    });
+
+    // Get order by id
+    app.get("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params?.id.trim();
+
+      const filter = { _id: ObjectId(id) };
+
+      const result = await orderCollection.findOne(filter);
 
       res.send(result);
     });
@@ -242,7 +252,7 @@ async function run() {
 
     // Delete/Cancel Order
     app.delete("/order/:id", verifyJWT, async (req, res) => {
-      const id = req.params.id;
+      const id = req.params?.id.trim();
       // console.log(id);
       const filter = { _id: ObjectId(id) };
       const result = await orderCollection.deleteOne(filter);
@@ -255,7 +265,9 @@ async function run() {
      * -----------------------------------
      */
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
-      const orderId = req.body?.orderId;
+      console.log(req.body);
+
+      const orderId = req.body?.orderId.trim();
 
       const order = await orderCollection.findOne({ _id: ObjectId(orderId) });
 
