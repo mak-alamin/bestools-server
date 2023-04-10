@@ -38,9 +38,9 @@ function verifyJWT(req, res, next) {
   });
 }
 
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kdfnv.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kdfnv.mongodb.net/?retryWrites=true&w=majority`;
 
-const uri = "mongodb://127.0.0.1:27017/bestools";
+// const uri = "mongodb://127.0.0.1:27017/bestools";
 
 async function run() {
   try {
@@ -221,7 +221,7 @@ async function run() {
     app.get("/orders/:email", verifyJWT, async (req, res) => {
       const email = req.params?.email.trim();
 
-      console.log(email);
+      // console.log(email);
 
       const filter = { userEmail: email };
 
@@ -250,6 +250,21 @@ async function run() {
       res.send(result);
     });
 
+    // Update Order
+    app.patch("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params?.id.trim();
+
+      const payment = req.body;
+
+      const filter = { _id: ObjectId(id) };
+      const updateDoc = {
+        $set: payment,
+      };
+      const result = await orderCollection.updateOne(filter, updateDoc);
+
+      res.send(result);
+    });
+
     // Delete/Cancel Order
     app.delete("/order/:id", verifyJWT, async (req, res) => {
       const id = req.params?.id.trim();
@@ -265,7 +280,7 @@ async function run() {
      * -----------------------------------
      */
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
-      console.log(req.body);
+      // console.log(req.body);
 
       const orderId = req.body?.orderId.trim();
 
