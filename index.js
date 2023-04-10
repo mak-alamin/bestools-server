@@ -38,6 +38,16 @@ function verifyJWT(req, res, next) {
   });
 }
 
+function validateId(req, res, next) {
+  const id = req.params?.id;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ error: "Invalid ID" });
+  }
+
+  next();
+}
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kdfnv.mongodb.net/?retryWrites=true&w=majority`;
 
 // const uri = "mongodb://127.0.0.1:27017/bestools";
@@ -96,11 +106,16 @@ async function run() {
 
       const filter = { email: email };
 
-      const user = await userCollection.findOne(filter);
+      let user = await userCollection.findOne(filter);
 
-      // console.log(user);
+      resUser = {
+        ...user,
+        _id: user?._id.toString(),
+      };
 
-      res.send(user);
+      // console.log(resUser);
+
+      res.send(resUser);
     });
 
     // Insert One User (for registration)
@@ -158,8 +173,8 @@ async function run() {
     });
 
     // Get Single Product
-    app.get("/product/:id", async (req, res) => {
-      const id = req.params?.id.trim();
+    app.get("/product/:id", validateId, async (req, res) => {
+      const id = req.params?.id.toString().trim();
       const query = { _id: ObjectId(id) };
 
       const result = await productCollection.findOne(query);
@@ -185,26 +200,38 @@ async function run() {
     });
 
     // Update Product
-    app.put("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
-      const id = req.params?.id.trim();
-      const product = req.body;
-      const filter = { _id: ObjectId(id) };
-      const updateDoc = {
-        $set: product,
-      };
-      const result = await productCollection.updateOne(filter, updateDoc);
+    app.put(
+      "/product/:id",
+      verifyJWT,
+      verifyAdmin,
+      validateId,
+      async (req, res) => {
+        const id = req.params?.id.toString().trim();
+        const product = req.body;
+        const filter = { _id: ObjectId(id) };
+        const updateDoc = {
+          $set: product,
+        };
+        const result = await productCollection.updateOne(filter, updateDoc);
 
-      res.send(result);
-    });
+        res.send(result);
+      }
+    );
 
     // Delete Product
-    app.delete("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
-      const id = req.params?.id.trim();
-      // console.log(id);
-      const filter = { _id: ObjectId(id) };
-      const result = await productCollection.deleteOne(filter);
-      res.send(result);
-    });
+    app.delete(
+      "/product/:id",
+      verifyJWT,
+      verifyAdmin,
+      validateId,
+      async (req, res) => {
+        const id = req.params?.id.trim();
+        // console.log(id);
+        const filter = { _id: ObjectId(id) };
+        const result = await productCollection.deleteOne(filter);
+        res.send(result);
+      }
+    );
 
     /**
      * -----------------------------------
@@ -219,7 +246,7 @@ async function run() {
 
     // Get orders for single user
     app.get("/orders/:email", verifyJWT, async (req, res) => {
-      const email = req.params?.email.trim();
+      const email = req.params?.email.toString().trim();
 
       // console.log(email);
 
@@ -231,8 +258,8 @@ async function run() {
     });
 
     // Get order by id
-    app.get("/order/:id", verifyJWT, async (req, res) => {
-      const id = req.params?.id.trim();
+    app.get("/order/:id", verifyJWT, validateId, async (req, res) => {
+      const id = req.params?.id.toString().trim();
 
       const filter = { _id: ObjectId(id) };
 
@@ -251,12 +278,14 @@ async function run() {
     });
 
     // Update Order
-    app.patch("/order/:id", verifyJWT, async (req, res) => {
-      const id = req.params?.id.trim();
+    app.patch("/order/:id", verifyJWT, validateId, async (req, res) => {
+      const id = req.params?.id.toString().trim();
+
+      const idObject = ObjectId.createFromHexString(id);
 
       const payment = req.body;
 
-      const filter = { _id: ObjectId(id) };
+      const filter = { _id: idObject };
       const updateDoc = {
         $set: payment,
       };
@@ -266,8 +295,8 @@ async function run() {
     });
 
     // Delete/Cancel Order
-    app.delete("/order/:id", verifyJWT, async (req, res) => {
-      const id = req.params?.id.trim();
+    app.delete("/order/:id", verifyJWT, validateId, async (req, res) => {
+      const id = req.params?.id.toString().trim();
       // console.log(id);
       const filter = { _id: ObjectId(id) };
       const result = await orderCollection.deleteOne(filter);
@@ -280,9 +309,9 @@ async function run() {
      * -----------------------------------
      */
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
-      // console.log(req.body);
+      // console.log(req.body?.orderId);
 
-      const orderId = req.body?.orderId.trim();
+      const orderId = req.body?.orderId.toString().trim();
 
       const order = await orderCollection.findOne({ _id: ObjectId(orderId) });
 
