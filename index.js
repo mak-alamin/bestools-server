@@ -281,13 +281,11 @@ async function run() {
     app.patch("/order/:id", verifyJWT, validateId, async (req, res) => {
       const id = req.params?.id.toString().trim();
 
-      const idObject = ObjectId.createFromHexString(id);
+      const updatedData = req.body;
 
-      const payment = req.body;
-
-      const filter = { _id: idObject };
+      const filter = { _id: ObjectId(id) };
       const updateDoc = {
-        $set: payment,
+        $set: updatedData,
       };
       const result = await orderCollection.updateOne(filter, updateDoc);
 
