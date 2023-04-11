@@ -61,6 +61,8 @@ async function run() {
 
     const orderCollection = client.db("bestools").collection("orders");
 
+    const reviewCollection = client.db("bestools").collection("reviews");
+
     const verifyAdmin = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
@@ -298,6 +300,30 @@ async function run() {
       // console.log(id);
       const filter = { _id: ObjectId(id) };
       const result = await orderCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    /**
+     * -----------------------------------
+     * Review API Routes
+     * -----------------------------------
+     */
+
+    // Get all reviews
+    app.get("/reviews", async (req, res) => {
+      const reviews = await reviewCollection.find().toArray();
+
+      console.log(reviews);
+      
+      res.send(reviews);
+    });
+
+    //Insert a Review
+    app.post("/review", verifyJWT, async (req, res) => {
+      let order = req.body;
+
+      let result = await reviewCollection.insertOne(order);
+
       res.send(result);
     });
 
