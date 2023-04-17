@@ -211,9 +211,11 @@ async function run() {
         const id = req.params?.id.toString().trim();
         const product = req.body;
         const filter = { _id: ObjectId(id) };
+
         const updateDoc = {
           $set: product,
         };
+
         const result = await productCollection.updateOne(filter, updateDoc);
 
         res.send(result);
@@ -312,8 +314,6 @@ async function run() {
     // Get all reviews
     app.get("/reviews", async (req, res) => {
       const reviews = await reviewCollection.find().toArray();
-
-      console.log(reviews);
       
       res.send(reviews);
     });
